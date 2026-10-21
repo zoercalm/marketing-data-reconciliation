@@ -4,6 +4,7 @@ import csv
 import json
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
+from datetime import date
 
 KEYS = ('date', 'source', 'metric')
 
@@ -14,7 +15,13 @@ def read(path):
         if not set((*KEYS, 'value')).issubset(reader.fieldnames or []):
             raise ValueError('required columns: date,source,metric,value')
         for row in reader:
+            if None in row or any(row.get(k) is None for k in (*KEYS, 'value')):
+                raise ValueError('row must contain all declared columns')
             key = tuple(row[k] for k in KEYS)
+            if any(v != v.strip() for v in key):
+                raise ValueError('key whitespace is not allowed')
+            if date.fromisoformat(key[0]).isoformat() != key[0]:
+                raise ValueError('date must be YYYY-MM-DD')
             if not all(key) or key in result:
                 raise ValueError(f'empty or duplicate key: {key}')
             try:
@@ -29,7 +36,7 @@ def read(path):
     return result
 
 def compare(expected, actual, absolute=Decimal('0'), relative=Decimal('0')):
-    if absolute < 0 or relative < 0 or not absolute.is_finite() or not relative.is_finite():
+    if not absolute.is_finite() or not relative.is_finite() or absolute < 0 or relative < 0:
         raise ValueError('tolerances must be finite and non-negative')
     rows = []
     for key in sorted(expected.keys() | actual.keys()):
@@ -45,11 +52,11 @@ def compare(expected, actual, absolute=Decimal('0'), relative=Decimal('0')):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('expected');p.add_argument('actual');p.add_argument('--output',default='output/report.json')
-    p.add_argument('--absolute',type=Decimal,default=Decimal('0'));p.add_argument('--relative',type=Decimal,default=Decimal('0'))
+    p.add_argument('--absolute',default='0');p.add_argument('--relative',default='0')
     args=p.parse_args()
     try:
-        rows=compare(read(args.expected),read(args.actual),args.absolute,args.relative)
-    except ValueError as exc:
+        rows=compare(read(args.expected),read(args.actual),Decimal(args.absolute),Decimal(args.relative))
+    except (ValueError, InvalidOperation, OSError, csv.Error) as exc:
         p.exit(2,str(exc)+'\n')
     out=Path(args.output);out.parent.mkdir(parents=True,exist_ok=True)
     out.write_text(json.dumps(rows,indent=2)+'\n')

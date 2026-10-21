@@ -32,4 +32,20 @@ class Checks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d)/'x.csv';p.write_text('date,source,metric,value\n'+ '2026-01-01,s,visits,1\n'*2)
             with self.assertRaises(ValueError):read(p)
+    def test_cli_contract(self):
+        import subprocess, sys
+        with tempfile.TemporaryDirectory() as d:
+            generate(d);p=Path(d)
+            def run(*args):
+                return subprocess.run([sys.executable,'reconcile.py',*map(str,args),'--output',str(p/'out.json')],capture_output=True,text=True)
+            self.assertEqual(run(p/'expected.csv',p/'matching.csv').returncode,0)
+            self.assertEqual(run(p/'expected.csv',p/'broken.csv').returncode,1)
+            for row in ['2026-01-01,s,visits','yesterday,s,visits,1','2026-01-01, s,visits,1','2026-01-01,s,visits,1,extra']:
+                bad=p/'invalid.csv';bad.write_text('date,source,metric,value\n'+row+'\n')
+                r=run(bad,bad);self.assertEqual(r.returncode,2);self.assertNotIn('Traceback',r.stderr)
+            for tol in ['NaN','Infinity','-1','nonsense']:
+                r=run(p/'expected.csv',p/'matching.csv','--relative',tol)
+                self.assertEqual(r.returncode,2);self.assertNotIn('Traceback',r.stderr)
+            r=run(p/'absent.csv',p/'matching.csv');self.assertEqual(r.returncode,2);self.assertNotIn('Traceback',r.stderr)
 if __name__=='__main__':unittest.main()
+
