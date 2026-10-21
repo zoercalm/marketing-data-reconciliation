@@ -1,0 +1,15 @@
+date,source,metric,value
+2026-01-01,synthetic-store,visits,101
+2026-01-01,synthetic-store,pageviews,202
+2026-01-02,synthetic-store,visits,102
+2026-01-02,synthetic-store,pageviews,204
+2026-01-03,synthetic-store,visits,103
+2026-01-03,synthetic-store,pageviews,206
+2026-01-04,synthetic-store,visits,104
+2026-01-04,synthetic-store,pageviews,208
+2026-01-05,synthetic-store,visits,105
+2026-01-05,synthetic-store,pageviews,210
+2026-01-06,synthetic-store,visits,106
+2026-01-06,synthetic-store,pageviews,212
+2026-01-07,synthetic-store,visits,107
+2026-01-07,synthetic-store,pageviews,214
